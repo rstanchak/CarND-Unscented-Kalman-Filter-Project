@@ -46,6 +46,8 @@ public:
   ///* Laser measurement noise standard deviation position2 in m
   double std_laspy_;
 
+  MatrixXd R_las_;
+
   ///* Radar measurement noise standard deviation radius in m
   double std_radr_;
 
@@ -54,6 +56,8 @@ public:
 
   ///* Radar measurement noise standard deviation radius change in m/s
   double std_radrd_ ;
+
+  MatrixXd R_rad_;
 
   ///* Weights of sigma points
   VectorXd weights_;
@@ -77,6 +81,18 @@ public:
    * Destructor
    */
   virtual ~UKF();
+
+  /**
+   * Process the lidar measurement
+   * @param meas_package The initial measurement.
+   */
+  void ProcessLidar(MeasurementPackage meas_package);
+
+  /**
+   * Process the radar measurement
+   * @param meas_package The initial measurement.
+   */
+  void ProcessRadar(MeasurementPackage meas_package);
 
   /**
    * ProcessMeasurement
