@@ -21,9 +21,21 @@ link_directories(/usr/local/Cellar/libuv/1.11.0/lib)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
 
 
-#add_executable(UnscentedKF src/main.cpp ${sources})
-add_executable(UnscentedKF_test src/main2.cpp ${sources})
 
-add_executable(test_UnscentedKF src/testmain.cpp ${sources})
+add_executable(UnscentedKF src/main.cpp ${sources})
+target_link_libraries(UnscentedKF z ssl uv uWS)
 
-#target_link_libraries(UnscentedKF z ssl uv uWS)
+if(${BUILD_MYSTUFF})
+	include_directories(src)
+	add_library(ukf ${sources})
+
+	add_executable(UnscentedKF_test src/main2.cpp)
+	target_link_libraries(UnscentedKF_test ukf)
+
+	add_executable(test_UnscentedKF src/testmain.cpp ${sources})
+	target_link_libraries(test_UnscentedKF ukf)
+
+	add_subdirectory(ext/googletest)
+	enable_testing()
+	add_subdirectory(test)
+endif()
