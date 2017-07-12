@@ -1,13 +1,13 @@
 project(UnscentedKF)
 
-cmake_minimum_required (VERSION 3.5)
+cmake_minimum_required (VERSION 2.8)
 
 add_definitions(-std=c++11)
 
 set(CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")
 
-set(sources src/ukf.cpp src/main.cpp src/tools.cpp)
+set(sources src/ukf.cpp src/tools.cpp)
 
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
@@ -21,6 +21,9 @@ link_directories(/usr/local/Cellar/libuv/1.11.0/lib)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
 
 
-add_executable(UnscentedKF ${sources})
+#add_executable(UnscentedKF src/main.cpp ${sources})
+add_executable(UnscentedKF_test src/main2.cpp ${sources})
 
-target_link_libraries(UnscentedKF z ssl uv uWS)
+add_executable(test_UnscentedKF src/testmain.cpp ${sources})
+
+#target_link_libraries(UnscentedKF z ssl uv uWS)
