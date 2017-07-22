@@ -26,11 +26,11 @@ class UKFTest : public ::testing::Test {
     m.raw_measurements_ << rho, phi, phi_dot;
     ukf.ProcessRadar(m);
     std::cout<<ukf.P_<<std::endl;
-    EXPECT_LT(fabs(expected_x-ukf.x_(0)), 1e-10);
-    EXPECT_LT(fabs(expected_y-ukf.x_(1)), 1e-10);
+    EXPECT_LT(fabs(expected_x-ukf.x_(0)), 1e-1);
+    EXPECT_LT(fabs(expected_y-ukf.x_(1)), 1e-1);
   }
   void testProcessLidar( int timestamp_s, double x, double y, double expected_x, double expected_y) {
-    MeasurementPackage m = { .timestamp_=timestamp_s*1000000, .sensor_type_=MeasurementPackage::RADAR };
+    MeasurementPackage m = { .timestamp_=timestamp_s*1000000, .sensor_type_=MeasurementPackage::LASER};
     m.raw_measurements_ = Eigen::VectorXd(2);
     m.raw_measurements_ << x, y;
     ukf.ProcessLidar(m);
@@ -72,5 +72,4 @@ TEST_F(UKFTest, MethodProcessLidarInit270deg) {
 	testProcessLidar(0, 0, -1, 0, -1);
 	testProcessLidar(1, 0, -1, 0, -1);
 }
-
 }  // namespace
