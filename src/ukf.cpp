@@ -195,8 +195,7 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   debug << "x, P " << std::endl << x_ << std::endl << P_ << std::endl;
 }
 
-/**
- */
+// reference implementation from lecture slide 'Generating Sigma Points Assignment' ported to helper function
 static void GenerateSigmaPoints(int n_x, double lambda, const VectorXd & x, const MatrixXd & P, MatrixXd * retval_Xsig) {
 
   // create sigma point matrix
@@ -213,7 +212,7 @@ static void GenerateSigmaPoints(int n_x, double lambda, const VectorXd & x, cons
   *retval_Xsig = Xsig;
 }
 
-
+// reference implementation from lecture slide 'Augmentation Assignment' ported to helper function
 static void AugmentedSigmaPoints(const VectorXd &x, const MatrixXd &P, const VectorXd & std_addl, double lambda, MatrixXd * retval_Xsig_aug) {
 
   // additional state dimensions in augmented state
@@ -249,7 +248,7 @@ static void AugmentedSigmaPoints(const VectorXd &x, const MatrixXd &P, const Vec
   *retval_Xsig_aug = Xsig_aug;
 }
 
-
+// reference implementation from lecture slide 'Sigma Point Predition Assignment' ported to helper function
 static void SigmaPointPrediction(int n_x, const MatrixXd &Xsig_aug, double dt, MatrixXd* Xsig_out) {
 
   int n_aug = Xsig_aug.rows();
@@ -317,6 +316,7 @@ static void GenerateWeights(int n_aug, double lambda, VectorXd * retarg_weights)
   *retarg_weights = weights;
 }
 
+// reference implementation from lecture slide 'Predicted Mean and Covariance Assignment' ported to helper function
 static void PredictMeanAndCovariance(const MatrixXd & Xsig_pred, const VectorXd & weights, VectorXd* retarg_x, MatrixXd* retarg_P) {
   int n_aug = (Xsig_pred.cols()-1)/2;
   int n_x = Xsig_pred.rows();
@@ -392,6 +392,7 @@ static void PredictLidarMeasurement(const MatrixXd & Xsig_pred, const VectorXd &
   *S_out = S;
 }
 
+// reference implementation from lecture slide 'Predict Radar Measurement Assignment' ported to helper function
 static void PredictRadarMeasurement(const MatrixXd & Xsig_pred, const VectorXd & weights, const MatrixXd & R, MatrixXd * Zsig_out, VectorXd* z_out, MatrixXd* S_out) {
 
   // set state dimension
@@ -489,6 +490,7 @@ void UpdateStateLidar(VectorXd & x, MatrixXd & P, const VectorXd & z, const Matr
   P = P - K*S*K.transpose();
 }
 
+// reference implementation from lecture slide 'UKF Update Assignment' ported to helper function
 void UpdateStateRadar(VectorXd & x, MatrixXd & P, const VectorXd & z, const MatrixXd & Xsig_pred, const VectorXd & weights, const MatrixXd & Zsig, const VectorXd & z_pred, const MatrixXd & S) {
 
   // set state dimension
@@ -524,6 +526,7 @@ void UpdateStateRadar(VectorXd & x, MatrixXd & P, const VectorXd & z, const Matr
   P = P - K*S*K.transpose();
 }
 
+// test code from lecture slide 'Augmentation Assignment 2'
 void test_AugmentedSigmaPoints() {
   // set state dimension
   int n_x = 5;
@@ -567,7 +570,7 @@ void test_AugmentedSigmaPoints() {
   debug << "Xsig_aug = " << std::endl << Xsig_aug << std::endl;
 }
 
-
+// test code from lecture slide 'Predicted Mean and Covariance'
 void test_PredictMeanAndCovariance() {
 
   // set state dimension
@@ -633,6 +636,7 @@ void test_SigmaPointPrediction() {
   debug << "Xsig_pred = " << std::endl << Xsig_pred << std::endl;
 }
 
+// test code from lecture slide 'Predict Radar Measurement Assig...'
 void test_PredictRadarMeasurement() {
   VectorXd z_pred;
   MatrixXd S;
@@ -680,6 +684,7 @@ void test_PredictRadarMeasurement() {
   debug << "S: " << std::endl << S << std::endl;
 }
 
+// test code from lecture slide 'UKF Update Assignment 2'
 void test_UpdateState() {
   int n_x = 5;
   int n_aug = 7;
