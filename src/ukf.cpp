@@ -27,7 +27,7 @@ UKF::UKF() {
   use_laser_ = true;
 
   // if this is false, radar measurements will be ignored (except during init)
-  use_radar_ = false;
+  use_radar_ = true;
 
   // initial state vector
   x_ = VectorXd::Zero(5);
@@ -36,10 +36,10 @@ UKF::UKF() {
   P_ = MatrixXd::Zero(5, 5);
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 30;
+  std_a_ = .3;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 30;
+  std_yawdd_ = .5;
 
   // Laser measurement noise standard deviation position1 in m
   std_laspx_ = 0.15;
@@ -61,10 +61,10 @@ UKF::UKF() {
   n_x_ = 5;
   n_aug_ = n_x_ + 2;
   lambda_ = n_aug_ - 3;
-  P_.diagonal() << 1., 1., 1000., 1000., 1000.;
+  P_.diagonal() << .5, .5, .5, M_PI*0.25, .1;
   GenerateWeights(n_aug_, lambda_, &weights_);
 
-  R_rad_ = MatrixXd::Zero(3,3);
+  R_rad_ = MatrixXd::Zero(3, 3);
   R_rad_.diagonal() << std_radr_*std_radr_, std_radphi_ * std_radphi_, std_radrd_*std_radrd_;
   R_las_ = MatrixXd::Zero(2, 2);
   R_las_.diagonal() << std_laspx_*std_laspx_, std_laspy_*std_laspy_;
@@ -94,18 +94,19 @@ void UKF::ProcessRadar(MeasurementPackage meas_package) {
   double dt = (meas_package.timestamp_ - time_us_)/1000000.;
   double rho = meas_package.raw_measurements_[0];
   double phi = meas_package.raw_measurements_[1];
+  double rho_dot = meas_package.raw_measurements_[2];
 
   // update current time
   time_us_ = meas_package.timestamp_;
 
   // initialize state from first measurement
-  if(!is_initialized_) {
-    x_ << rho * cos(phi), rho * sin(phi), 0, 0, 0;
+  if (!is_initialized_) {
+    x_ << rho * cos(phi), rho * sin(phi), rho_dot, phi, 0;
     is_initialized_ = true;
     return;
   }
   this->Prediction(dt);
-  this->UpdateRadar( meas_package );
+  this->UpdateRadar(meas_package);
 }
 
 /**
@@ -250,42 +251,50 @@ static void SigmaPointPrediction(int n_x, const MatrixXd &Xsig_aug, double dt, M
 
   int n_aug = Xsig_aug.rows();
 
-  //create matrix with predicted sigma points as columns
+  // create matrix with predicted sigma points as columns
   MatrixXd Xsig_pred = MatrixXd::Zero(n_x, 2 * n_aug + 1);
 
-/*******************************************************************************
- * Student part begin
- ******************************************************************************/
+  // predict sigma points
+  for (int i = 0; i < (2*n_aug+1); ++i) {
+	  // extract values for better readability
+	  double p_x = Xsig_aug(0, i);
+	  double p_y = Xsig_aug(1, i);
+	  double v = Xsig_aug(2, i);
+	  double yaw = Xsig_aug(3, i);
+	  double yawd = Xsig_aug(4, i);
+	  double nu_a = Xsig_aug(5, i);
+	  double nu_yawdd = Xsig_aug(6, i);
 
-  //predict sigma points
-  for(int i=0; i<(2*n_aug+1); ++i)
-  {
-    double v = Xsig_aug(2, i);
-    double psi = Xsig_aug(3, i);
-    double psi_dot = Xsig_aug(4, i);
-    double nu_a = Xsig_aug(5, i);
-    double nu_psi = Xsig_aug(6, i);
+	  // predicted state values
+	  double px_p, py_p;
 
-    // avoid division by zero
-    if(fabs(psi_dot) > 0.001)
-    {
-      Xsig_pred.col(i) <<
-        v/psi_dot*(sin(psi+psi_dot*dt)-sin(psi)) + 0.5*dt*dt*cos(psi)*nu_a,
-        v/psi_dot*(-cos(psi+psi_dot*dt)+cos(psi)) + 0.5*dt*dt*sin(psi)*nu_a,
-        dt * nu_a,
-        psi_dot*dt + 0.5*dt*dt*nu_psi,
-        dt * nu_psi;
-    }
-    else
-    {
-      Xsig_pred.col(i) <<
-        v*cos(psi)*dt + 0.5*dt*dt*cos(psi)*nu_a,
-        v*sin(psi)*dt + 0.5*dt*dt*sin(psi)*nu_a,
-        dt * nu_a,
-        0.5*dt*dt*nu_psi,
-        dt * nu_psi;
-    }
-    Xsig_pred.col(i) += Xsig_aug.block(0,i,n_x,1);
+	  // avoid division by zero
+	  if (fabs(yawd) > 0.001) {
+		  px_p = p_x + v/yawd * (sin(yaw + yawd*dt) - sin(yaw));
+		  py_p = p_y + v/yawd * (cos(yaw) - cos(yaw+yawd*dt) );
+	  } else {
+		  px_p = p_x + v*dt*cos(yaw);
+		  py_p = p_y + v*dt*sin(yaw);
+	  }
+
+	  double v_p = v;
+	  double yaw_p = yaw + yawd*dt;
+	  double yawd_p = yawd;
+
+	  // add noise
+	  px_p = px_p + 0.5*nu_a*dt*dt * cos(yaw);
+	  py_p = py_p + 0.5*nu_a*dt*dt * sin(yaw);
+	  v_p = v_p + nu_a*dt;
+
+	  yaw_p = yaw_p + 0.5*nu_yawdd*dt*dt;
+	  yawd_p = yawd_p + nu_yawdd*dt;
+
+	  // write predicted sigma point into right column
+	  Xsig_pred(0, i) = px_p;
+	  Xsig_pred(1, i) = py_p;
+	  Xsig_pred(2, i) = v_p;
+	  Xsig_pred(3, i) = yaw_p;
+	  Xsig_pred(4, i) = yawd_p;
   }
 
   //write result
@@ -410,13 +419,15 @@ static void PredictRadarMeasurement(const MatrixXd & Xsig_pred, const VectorXd &
     double y = Xsig_pred(1,i);
     double v = Xsig_pred(2,i);
     double psi = Xsig_pred(3, i);
+    double vx = v*cos(psi);
+    double vy = v*sin(psi);
     // rho
     double rho = sqrt( x*x + y*y );
     Zsig(0,i) = rho;
     // phi
     Zsig(1,i) = atan2( y, x );
     // rho_dot
-    Zsig(2,i) = (x * cos( psi )*v + y * sin( psi )*v)/rho;
+    Zsig(2, i) = (x*vx + y*vy)/rho;
   }
   //calculate mean predicted measurement
   z_pred = Zsig * weights;
@@ -647,7 +658,7 @@ void test_PredictRadarMeasurement()
   VectorXd weights;
   GenerateWeights( n_aug, lambda, &weights );
 
-  MatrixXd R(3,3);
+  MatrixXd R = MatrixXd::Zero(3, 3);
   R.diagonal() << std_radr*std_radr, std_radphi*std_radphi, std_radrd*std_radrd;
  
   //create example matrix with predicted sigma points
